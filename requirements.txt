@@ -1,0 +1,12 @@
+# Pinned after the final Kaggle run with `pip freeze`; versions below are the Kaggle image at time of writing.
+numpy
+pandas
+opencv-python-headless
+pycocotools
+scipy
+scikit-learn
+scikit-image
+joblib
+matplotlib
+torch
+segmentation-models-pytorch
