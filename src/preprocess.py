@@ -21,14 +21,20 @@ def _disk_by_threshold(img):
     return float(cx), float(cy), float(r)
 
 
-def find_disk(img, down=4, n_candidates=8):
+# Observed GONG disk radius in this dataset: 885-913 px (median ~897). Fits outside this band are the halo ring.
+DISK_R_RANGE = (870, 930)
+
+
+def find_disk(img, down=4, n_candidates=8, r_range=None):
     """(cx, cy, r) in full-res px. Hough candidates on a downsampled image, re-ranked by
-    limb contrast (bright just inside, dark just outside) to reject the off-limb halo ring."""
+    limb contrast (bright just inside, dark just outside) to reject the off-limb halo ring.
+    `r_range` (full-res px) constrains the radius search; used to refit implausible fits."""
     small = cv2.resize(img, (img.shape[1] // down, img.shape[0] // down), interpolation=cv2.INTER_AREA)
     blur = cv2.GaussianBlur(small, (5, 5), 0)
     n = small.shape[0]
+    rmin, rmax = (int(0.36 * n), int(0.49 * n)) if r_range is None else (int(r_range[0] / down), int(r_range[1] / down) + 1)
     circles = cv2.HoughCircles(blur, cv2.HOUGH_GRADIENT, dp=1, minDist=1, param1=50, param2=20,
-                               minRadius=int(0.36 * n), maxRadius=int(0.49 * n))
+                               minRadius=rmin, maxRadius=rmax)
     if circles is None:
         return _disk_by_threshold(img)
     yy, xx = np.indices(small.shape, dtype=np.float32)
@@ -43,7 +49,10 @@ def find_disk(img, down=4, n_candidates=8):
             best, best_score = (cx, cy, r), score
     if best is None:
         return _disk_by_threshold(img)
-    return float(best[0] * down), float(best[1] * down), float(best[2] * down)
+    cx, cy, r = float(best[0] * down), float(best[1] * down), float(best[2] * down)
+    if r_range is None and not (DISK_R_RANGE[0] <= r <= DISK_R_RANGE[1]):
+        return find_disk(img, down, n_candidates, r_range=DISK_R_RANGE)
+    return cx, cy, r
 
 
 def radius_map(cx, cy, r):

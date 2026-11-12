@@ -23,10 +23,11 @@ def main():
     ap.add_argument("--split", choices=["val", "test"], required=True)
     ap.add_argument("--weights", default="best.pt")
     ap.add_argument("--tta", type=int, default=1)
+    ap.add_argument("--cache", default=None, help="dir with meta.csv (default: run's config)")
     a = ap.parse_args()
 
     cfg = json.load(open(f"{a.run}/config.json"))
-    meta = pd.read_csv(f"{cfg['cache']}/meta.csv", keep_default_na=False)
+    meta = pd.read_csv(f"{a.cache or cfg['cache']}/meta.csv", keep_default_na=False)
     rows = meta[(meta.split == "train") & (meta.fold == cfg["fold"])] if a.split == "val" \
         else meta[meta.split == "test"]
     dev = "cuda" if torch.cuda.is_available() else "cpu"

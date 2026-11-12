@@ -23,17 +23,20 @@ def main():
     ap.add_argument("--thr", type=float)
     ap.add_argument("--close_px", type=int)
     ap.add_argument("--min_area", type=int)
+    ap.add_argument("--min_score", type=float)
+    ap.add_argument("--params", default=None, help="postproc.json (default: first run's)")
+    ap.add_argument("--cache", default=None, help="dir with meta.csv (default: first run's config)")
     ap.add_argument("--workers", type=int, default=4)
     a = ap.parse_args()
 
     cfg = json.load(open(f"{a.runs[0]}/config.json"))
-    params = json.load(open(f"{a.runs[0]}/postproc.json"))["params"]
-    for k in ("thr", "close_px", "min_area"):
+    params = json.load(open(a.params or f"{a.runs[0]}/postproc.json"))["params"]
+    for k in ("thr", "close_px", "min_area", "min_score"):
         if getattr(a, k) is not None:
             params[k] = getattr(a, k)
     print("post-processing:", params, "| runs:", a.runs)
 
-    meta = pd.read_csv(f"{cfg['cache']}/meta.csv", keep_default_na=False)
+    meta = pd.read_csv(f"{a.cache or cfg['cache']}/meta.csv", keep_default_na=False)
     te = meta[meta.split == "test"]
 
     def one(r):
