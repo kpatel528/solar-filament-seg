@@ -56,5 +56,4 @@ it rebuilds every table, figure and submission without retraining. Retraining al
 - Guillaume (2026). Multi-family Mask2Former approach (10th-place write-up). Kaggle. doi:10.34740/kaggle/w/126726 — idea of PQ/2-based candidate selection.
 
 ## AI assistance
-Parts of the code and documentation were developed with the assistance of an AI model (Anthropic Claude); see the
-group report for the full disclosure.
+Parts of the code and documentation were developed with the assistance of an AI model.
