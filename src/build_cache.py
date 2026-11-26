@@ -63,7 +63,7 @@ def main():
     recs = Parallel(n_jobs=a.workers, verbose=5)(
         delayed(process)(row, a.out, gt_sets.get(row["stem"]) if row["split"] == "train" else None)
         for row in df.to_dict("records"))
-    meta = pd.concat([df.reset_index(drop=True), pd.DataFrame(recs).drop(columns="stem")], axis=1)  # Parallel keeps order
+    meta = pd.concat([df.reset_index(drop=True), pd.DataFrame(recs).drop(columns="stem")], axis=1)
     meta["n_sets"] = meta.stem.map(lambda s: len(gt_sets.get(s, [])))
     med = meta.r.median()
     meta["disk_outlier"] = (meta.r - med).abs() > 25

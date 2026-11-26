@@ -52,7 +52,7 @@ def score_tables(tables, ma, ms):
         w = 1.0 / len(ious)
         for iou in ious:
             sub = iou[keep]
-            hits = sub[sub > 0.5]          # IoU>0.5 matches are unique for disjoint predictions
+            hits = sub[sub > 0.5]
             tp = hits.size
             T += w * tp; P += w * (int(keep.sum()) - tp); N += w * (iou.shape[1] - tp); S += w * hits.sum()
     return T, P, N, S
@@ -70,7 +70,6 @@ def main():
     cfg0 = json.load(open(f"{a.runs[0]}/config.json"))
     meta = pd.read_csv(f"{a.cache or cfg0['cache']}/meta.csv", keep_default_na=False).set_index("stem")
     gt_sets = load_annotation_sets()
-    # Group runs by stem: several architectures trained on the same fold are AVERAGED (= the test ensemble).
     by_stem, folds = {}, set()
     for run in a.runs:
         fold = json.load(open(f"{run}/config.json"))["fold"]
@@ -107,7 +106,6 @@ def main():
                   min_area=int(best.min_area), min_score=float(best.min_score))
     print(grid.head(15).round(4).to_string())
 
-    # full evaluation (with Dice and fragmentation counts) at the chosen setting
     preds, gts = {}, {}
     for stem, runs in items:
         r = meta.loc[stem]

@@ -14,7 +14,7 @@ def extract_components(resp, rr, thr, close_px=0, r_limit=0.98, min_area=100, ma
         m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, k)
     n, lab, stats, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
     keep = [i for i in range(1, n) if stats[i, cv2.CC_STAT_AREA] >= min_area]
-    if len(keep) > max_instances:  # GT max is 26/image; beyond this is noise
+    if len(keep) > max_instances:
         keep = sorted(keep, key=lambda i: -stats[i, cv2.CC_STAT_AREA])[:max_instances]
     buf = np.zeros(m.shape, dtype=np.uint8, order="F")
     out = []

@@ -79,7 +79,6 @@ def main():
     a = parse()
     os.makedirs(a.out, exist_ok=True)
 
-    # Keep the original run configuration when resuming.
     config_path = os.path.join(a.out, "config.json")
     if not a.resume:
         with open(config_path, "w") as f:
@@ -127,7 +126,6 @@ def main():
         if not os.path.isfile(a.resume):
             raise FileNotFoundError(f"Checkpoint not found: {a.resume}")
 
-        # Check that scheduler/training dimensions match the original run.
         checkpoint = torch.load(a.resume, map_location=dev, weights_only=False)
         saved_args = checkpoint.get("args", {})
         required_same = (
@@ -153,7 +151,6 @@ def main():
         best = float(checkpoint["best"])
         log = checkpoint.get("log", [])
 
-        # Restore RNG states after model/optimizer construction.
         random.setstate(checkpoint["python_rng"])
         np.random.set_state(checkpoint["numpy_rng"])
         torch.set_rng_state(checkpoint["torch_rng"].cpu())
@@ -214,12 +211,10 @@ def main():
                 torch.save(model.state_dict(), f"{a.out}/best.pt")
                 rec["saved"] = "best"
 
-        # Keep weights-only files for inference scripts that expect these names.
         torch.save(model.state_dict(), f"{a.out}/last.pt")
         log.append(rec)
         pd.DataFrame(log).to_csv(f"{a.out}/log.csv", index=False)
 
-        # Full recovery point: model + optimizer + scheduler + scaler + RNG + epoch.
         save_checkpoint(
             f"{a.out}/last_checkpoint.pt",
             model, opt, sched, scaler, ep + 1, best, log, a

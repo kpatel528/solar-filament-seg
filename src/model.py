@@ -6,7 +6,7 @@ def build_model(encoder="resnet34", pretrained=True):
     return smp.Unet(
         encoder_name=encoder,
         encoder_weights="imagenet" if pretrained else None,
-        in_channels=1,          # grayscale H-alpha; smp adapts pretrained first-conv weights
+        in_channels=1,
         classes=1,
         decoder_attention_type="scse",
     )

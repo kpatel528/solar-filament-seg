@@ -156,10 +156,9 @@ def main():
         df["stem"], df["fold"], df["target"] = s, fold_of[s], targets(rles, gt_sets[s])
         frames.append(df)
     data = pd.concat(frames, ignore_index=True)
-    data[FEATURES] = data[FEATURES].astype(float)  # images with no candidates create object-typed empty frames
+    data[FEATURES] = data[FEATURES].astype(float)
     print(f"candidates: {len(data)} | with target > 0: {(data.target > 0).mean():.1%}")
 
-    # cross-fitted out-of-fold scores
     data["q"] = 0.0
     for k in sorted(data.fold.unique()):
         tr, te = data.fold != k, data.fold == k
@@ -167,7 +166,6 @@ def main():
     corr = np.corrcoef(data.q, data.target)[0, 1]
     print(f"OOF correlation(pred, target) = {corr:.3f} | p_mean alone: {np.corrcoef(data.p_mean, data.target)[0, 1]:.3f}")
 
-    # tune tau on OOF
     offsets = np.cumsum([0] + [len(r[0]) for r in oof])
     gts = {s: gt_sets[s] for s in stems}
     rows = []
@@ -182,7 +180,6 @@ def main():
     print(grid.to_string(index=False))
     tau = float(grid.iloc[0].tau)
 
-    # final model on all candidates; feature importance
     final = fit_lgb(data[FEATURES], data.target)
     imp = pd.Series(np.mean([m.booster_.feature_importance("gain") for m in final], axis=0), index=FEATURES)
     (imp / imp.sum()).sort_values(ascending=False).round(4).to_csv(f"{a.out}/feature_importance.csv")
@@ -191,7 +188,6 @@ def main():
     json.dump(dict(tau=tau, oof=grid.iloc[0].to_dict(), corr=float(corr), settings=SETTINGS),
               open(f"{a.out}/scorer.json", "w"), indent=2)
 
-    # test
     if all(os.path.isdir(f"{run}/{a.test_name}") for run in a.runs):
         te = meta[meta.split == "test"].index.tolist()
         tst = Parallel(n_jobs=a.workers, backend="threading", verbose=5)(

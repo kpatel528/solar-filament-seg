@@ -21,7 +21,6 @@ def _disk_by_threshold(img):
     return float(cx), float(cy), float(r)
 
 
-# Observed GONG disk radius in this dataset: 885-913 px (median ~897). Fits outside this band are the halo ring.
 DISK_R_RANGE = (870, 930)
 
 
