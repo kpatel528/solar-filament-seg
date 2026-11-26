@@ -27,6 +27,7 @@ def main():
     ap.add_argument("--params", default=None, help="postproc.json (default: first run's)")
     ap.add_argument("--cache", default=None, help="dir with meta.csv (default: first run's config)")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--probs_name", default="test_probs", help="folder with test maps inside each run")
     a = ap.parse_args()
 
     cfg = json.load(open(f"{a.runs[0]}/config.json"))
@@ -40,7 +41,7 @@ def main():
     te = meta[meta.split == "test"]
 
     def one(r):
-        p = np.mean([np.load(f"{run}/test_probs/{r.stem}.npy").astype(np.float32) for run in a.runs], axis=0)
+        p = np.mean([np.load(f"{run}/{a.probs_name}/{r.stem}.npy").astype(np.float32) for run in a.runs], axis=0)
         return r.stem, instances_from_response(p, radius_map(r.cx, r.cy, r.r), **params)
 
     preds = dict(Parallel(n_jobs=a.workers, backend="threading")(delayed(one)(r) for r in te.itertuples()))

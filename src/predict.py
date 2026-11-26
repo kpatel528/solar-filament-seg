@@ -22,7 +22,8 @@ def main():
     ap.add_argument("--run", required=True)
     ap.add_argument("--split", choices=["val", "test"], required=True)
     ap.add_argument("--weights", default="best.pt")
-    ap.add_argument("--tta", type=int, default=1)
+    ap.add_argument("--tta", type=int, default=3, help="views: 1 (none), 3 (flips), 8 (all rotations+flips)")
+    ap.add_argument("--out_name", default=None, help="folder name for the maps (default: <split>_probs)")
     ap.add_argument("--cache", default=None, help="dir with meta.csv (default: run's config)")
     a = ap.parse_args()
 
@@ -32,13 +33,14 @@ def main():
         else meta[meta.split == "test"]
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     model = build_model(cfg["encoder"], pretrained=False).to(dev)
-    model.load_state_dict(torch.load(f"{a.run}/{a.weights}", map_location=dev))
+    sd = torch.load(f"{a.run}/{a.weights}", map_location=dev)
+    model.load_state_dict({k: v.float() if v.is_floating_point() else v for k, v in sd.items()})
 
-    out = f"{a.run}/{a.split}_probs"
+    out = f"{a.run}/{a.out_name or a.split + '_probs'}"
     os.makedirs(out, exist_ok=True)
     for i, r in enumerate(rows.itertuples(), 1):
         img = cv2.imread(r.img_path, cv2.IMREAD_GRAYSCALE)
-        np.save(f"{out}/{r.stem}.npy", predict_full(model, img, dev, tta=bool(a.tta)).astype(np.float16))
+        np.save(f"{out}/{r.stem}.npy", predict_full(model, img, dev, tta=a.tta).astype(np.float16))
         if i % 20 == 0 or i == len(rows):
             print(f"{i}/{len(rows)}", flush=True)
 

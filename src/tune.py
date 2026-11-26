@@ -64,24 +64,31 @@ def main():
     ap.add_argument("--cache", default=None, help="dir with meta.csv (defaults to first run's config)")
     ap.add_argument("--out", default=None, help="where to write postproc.json (default: first run dir)")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--probs_name", default="val_probs", help="folder with OOF maps inside each run")
     a = ap.parse_args()
 
     cfg0 = json.load(open(f"{a.runs[0]}/config.json"))
     meta = pd.read_csv(f"{a.cache or cfg0['cache']}/meta.csv", keep_default_na=False).set_index("stem")
     gt_sets = load_annotation_sets()
-    items = []
+    # Group runs by stem: several architectures trained on the same fold are AVERAGED (= the test ensemble).
+    by_stem, folds = {}, set()
     for run in a.runs:
         fold = json.load(open(f"{run}/config.json"))["fold"]
-        for f in sorted(os.listdir(f"{run}/val_probs")):
-            items.append((run, f[:-4], fold))
-    print(f"OOF images: {len(items)} from folds {sorted(set(i[2] for i in items))}")
+        folds.add(fold)
+        for f in sorted(os.listdir(f"{run}/{a.probs_name}")):
+            by_stem.setdefault(f[:-4], []).append(run)
+    items = sorted(by_stem.items())
+    print(f"OOF images: {len(items)} from folds {sorted(folds)} | models per image: "
+          f"{sorted(set(len(v) for v in by_stem.values()))}")
 
-    def build(run, stem):
+    def load_prob(stem, runs):
+        return np.mean([np.load(f"{run}/{a.probs_name}/{stem}.npy").astype(np.float32) for run in runs], axis=0)
+
+    def build(stem, runs):
         r = meta.loc[stem]
-        prob = np.load(f"{run}/val_probs/{stem}.npy").astype(np.float32)
-        return image_tables(prob, radius_map(r.cx, r.cy, r.r), gt_sets[stem])
+        return image_tables(load_prob(stem, runs), radius_map(r.cx, r.cy, r.r), gt_sets[stem])
 
-    tabs = Parallel(n_jobs=a.workers, backend="threading", verbose=5)(delayed(build)(run, s) for run, s, _ in items)
+    tabs = Parallel(n_jobs=a.workers, backend="threading", verbose=5)(delayed(build)(s, runs) for s, runs in items)
 
     rows = []
     for thr, cp in itertools.product(THR, CLOSE):
@@ -102,10 +109,9 @@ def main():
 
     # full evaluation (with Dice and fragmentation counts) at the chosen setting
     preds, gts = {}, {}
-    for run, stem, _ in items:
+    for stem, runs in items:
         r = meta.loc[stem]
-        prob = np.load(f"{run}/val_probs/{stem}.npy").astype(np.float32)
-        preds[stem] = instances_from_response(prob, radius_map(r.cx, r.cy, r.r), **params)
+        preds[stem] = instances_from_response(load_prob(stem, runs), radius_map(r.cx, r.cy, r.r), **params)
         gts[stem] = gt_sets[stem]
     df, summ = evaluate_multi(gts, preds)
     df.to_csv(f"{out_dir}/oof_per_image.csv", index=False)

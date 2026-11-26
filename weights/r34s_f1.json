@@ -1,0 +1,15 @@
+{
+  "cache": "C:/Users/kpatel528/fil/cache",
+  "fold": 1,
+  "encoder": "resnet34",
+  "pretrained": 0,
+  "epochs": 30,
+  "samples": 1000,
+  "crop": 1024,
+  "batch": 8,
+  "lr": 0.0003,
+  "workers": 10,
+  "val_every": 3,
+  "seed": 42,
+  "out": "C:/Users/kpatel528/fil/runs/r34s_f1"
+}

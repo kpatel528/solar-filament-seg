@@ -45,12 +45,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="/kaggle/working/cache")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--folds", default=None, help="CSV with columns stem,fold to reuse an existing split "
+                                                  "(fold assignment can differ between scikit-learn versions)")
     a = ap.parse_args()
     os.makedirs(f"{a.out}/img", exist_ok=True)
     os.makedirs(f"{a.out}/soft", exist_ok=True)
 
     gt_sets = load_annotation_sets()
     tr = make_folds(file_table(TRAIN_IMG_DIR))
+    if a.folds:
+        tr["fold"] = tr.stem.map(pd.read_csv(a.folds).set_index("stem").fold).astype(int)
     tr["split"], tr["path"] = "train", TRAIN_IMG_DIR + "/" + tr.file
     te = file_table(TEST_IMG_DIR)
     te["split"], te["fold"], te["path"] = "test", -1, TEST_IMG_DIR + "/" + te.file
